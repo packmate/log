@@ -1,0 +1,23 @@
+{
+  "name": "@packmate/log",
+  "version": "0.4.0",
+  "description": "Combined local and remote logging for Node.js applications.",
+  "main": "source/log.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:packmate/log.git"
+  },
+  "scripts": {
+    "test": "mocha -r tests/tests.support source/*.test.js"
+  },
+  "dependencies": {
+    "@packmate/assure": "0.0.5",
+    "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "chai": "^4.3.0",
+    "mocha": "^8.2.1",
+    "sinon": "^9.2.4",
+    "sinon-chai": "^3.5.0"
+  }
+}
