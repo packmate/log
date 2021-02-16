@@ -1,17 +1,17 @@
 {
-  "name": "@packmate/log",
-  "version": "0.4.0",
+  "name": "@jrh-works/log",
+  "version": "0.5.0",
   "description": "Combined local and remote logging for Node.js applications.",
   "main": "source/log.js",
   "repository": {
     "type": "git",
-    "url": "git@github.com:packmate/log.git"
+    "url": "git@github.com:jrh-works/log.git"
   },
   "scripts": {
     "test": "mocha -r tests/tests.support source/*.test.js"
   },
   "dependencies": {
-    "@packmate/assure": "0.0.5",
+    "@jrh-works/assure": "0.0.5",
     "node-fetch": "^2.6.1"
   },
   "devDependencies": {

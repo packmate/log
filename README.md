@@ -1,16 +1,16 @@
-# @packmate/log
+# @jrh-works/log
 
-Combined local and remote logging (via [Logflare](https://logflare.app)) for Node.js applications.
+Combined local and remote logging (via [LogDNA](https://logdna.com)) for Node.js applications.
 
 ## Installation
 
-`npm install @packmate/log`
+`npm install @jrh-works/log`
 
 ## The Configuration Function
 
 ### Usage
 
-`const configureLogger = require('@packmate/log')`
+`const configureLogger = require('@jrh-works/log')`
 
 ### Syntax
 
@@ -41,9 +41,9 @@ Throws a standard `Error` if all configuration options are not present.
 | Property | Type | Description |
 | :-- | :-- | :-- |
 | application | String | The name of the application. |
-| key | String | The Logflare key. |
+| key | String | The LogDNA API key. |
 | mode | String | The mode of the running application (i.e. `production`). |
-| source | String | The Logflare source. |
+| source | String | The source of the log line. |
 | fetch | [Function: Fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) *(optional)* | A [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) implementation to be used for remote requests. Defaults to [`node-fetch`](https://github.com/node-fetch/node-fetch). |
 
 ---
@@ -53,7 +53,7 @@ Throws a standard `Error` if all configuration options are not present.
 ### Usage
 
 ```javascript
-const createLogger = require('@packmate/log')(options)
+const createLogger = require('@jrh-works/log')(options)
 const log = createLogger('logger-one')
 ```
 
@@ -90,7 +90,7 @@ log(message, [metadata], notes)
 ### Example Usage
 
 ```javascript
-const createLogger = require('@packmate/log')(options)
+const createLogger = require('@jrh-works/log')(options)
 const log = createLogger('logger-one')
 
 await log('Hello world!')
@@ -116,7 +116,7 @@ Throws a standard `Error` if called without a message.
 
 ### Effects
 
-- Logs will appear in the local console and in Logflare.
+- Logs will appear in the local console and in LogDNA.
 - The log level will be `info`.
 
 ---
@@ -153,7 +153,7 @@ log.error(messageOrError, [metadata])
 ### Example Usage
 
 ```javascript
-const createLogger = require('@packmate/log')(options)
+const createLogger = require('@jrh-works/log')(options)
 const log = createLogger('logger-two')
 
 await log.error(new Error())
@@ -178,7 +178,7 @@ Throws a standard `Error` if no message or error is present.
 
 ### Effects
 
-- Logs will appear in the local console and in Logflare.
+- Logs will appear in the local console and in LogDNA.
 - When given a string, the error message will be logged with optional metadata. 
 - When given an error object, the error message will be logged. The error object and stacktrace will be included in the metadata.
 - In all cases, the log level will be `error`.
@@ -188,7 +188,7 @@ Throws a standard `Error` if no message or error is present.
 ### Usage
 
 ```javascript
-const createLogger = require('@packmate/log')(options)
+const createLogger = require('@jrh-works/log')(options)
 
 // An example serverless function.
 module.exports = async (request, response) => {
@@ -221,7 +221,7 @@ Throws a standard `Error` if no request is present.
 
 ### Effects
 
-- Logs will appear in the local console and in Logflare.
+- Logs will appear in the local console and in LogDNA.
 - The URL and HTTP method will be logged (`GET /hello`) as the message, with the request body as metadata.
 - The log level will be `info`.
 

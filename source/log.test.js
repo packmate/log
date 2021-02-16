@@ -17,14 +17,6 @@ const fake = {
 
 // ---------------------------------------------
 
-function confirmCorrectBaseRequest(fetch, { key, source }) {
-  const { args } = fetch.getCall(0)
-
-  expect(args[1].method).to.eq('POST')
-  expect(args[1].headers['Content-Type']).to.include('application/json; charset=UTF-8')
-  expect(args[0]).to.eq(`https://api.logflare.app/logs?api_key=${ key }&source=${ source }`)
-}
-
 function getFetchBody(fetch) {
   return JSON.parse(fetch.getCall(0).args[1].body)
 }
@@ -100,13 +92,25 @@ describe('log()', () => {
 
   context('with a message', () => {
     it('sends the correct base request to Logflare', () => {
-      const fetch = spy.async()
+      const now = new Date().getTime()
 
-      const createLogger = configureLogger({ ...fake.options, fetch })
+      const clock = sinon.useFakeTimers(now)
+
+      const fetch = spy.async()
+      const key = 'test-key'
+      const source = 'test-source'
+
+      const createLogger = configureLogger({ ...fake.options, source, key, now, fetch })
       const log = createLogger(fake.name)
       log(fake.message)
 
-      confirmCorrectBaseRequest(fetch, fake.options)
+      const { args } = fetch.getCall(0)
+
+      expect(args[1].method).to.eq('POST')
+      expect(args[1].headers['Content-Type']).to.include('application/json; charset=UTF-8')
+      expect(args[0]).to.eq(`https://logs.logdna.com/logs/ingest?hostname=test-source&apikey=test-key&now=${ now }`)
+
+      clock.restore()
     })
 
     it('logs the name and message to the console', () => {
@@ -133,12 +137,12 @@ describe('log()', () => {
       log(message)
 
       expect(fetch).to.have.been.calledOnce
-      const { metadata, log_entry } = getFetchBody(fetch)
+      const { lines } = getFetchBody(fetch)
 
-      expect(log_entry).to.eq('[name] Test message.')
-      expect(metadata.level).to.eq('info')
-      expect(metadata.application).to.eq('test-app')
-      expect(metadata.mode).to.eq('testing')
+      expect(lines[0].line).to.eq('[name] Test message.')
+      expect(lines[0].level).to.eq('info')
+      expect(lines[0].app).to.eq('test-app')
+      expect(lines[0].env).to.eq('testing')
     })
 
     context('without data', () => {
@@ -158,8 +162,8 @@ describe('log()', () => {
         log(fake.message)
 
         expect(fetch).to.have.been.calledOnce
-        const { metadata } = getFetchBody(fetch)
-        expect(metadata.data).not.to.exist
+        const { lines } = getFetchBody(fetch)
+        expect(lines[0]).not.to.have.property('meta')
       })
     })
 
@@ -184,8 +188,8 @@ describe('log()', () => {
         log(fake.message, data)
 
         expect(fetch).to.have.been.calledOnce
-        const { metadata } = getFetchBody(fetch)
-        expect(metadata.data).to.deep.eq({ test: 'data' })
+        const { lines } = getFetchBody(fetch)
+        expect(lines[0].meta).to.deep.eq({ test: 'data' })
       })
     })
 
@@ -215,9 +219,9 @@ describe('log()', () => {
         log(message, {}, notes)
 
         expect(fetch).to.have.been.calledOnce
-        const { log_entry } = getFetchBody(fetch)
+        const { lines } = getFetchBody(fetch)
 
-        expect(log_entry).to.eq(`[test-title] Test message. (note 1, note 3)`)
+        expect(lines[0].line).to.eq(`[test-title] Test message. (note 1, note 3)`)
       })
 
       context('with all false notes', () => {
@@ -246,9 +250,9 @@ describe('log()', () => {
           log(message, {}, notes)
 
           expect(fetch).to.have.been.calledOnce
-          const { log_entry } = getFetchBody(fetch)
+          const { lines } = getFetchBody(fetch)
 
-          expect(log_entry).to.eq(`[test-title] Test message.`)
+          expect(lines[0].line).to.eq(`[test-title] Test message.`)
         })
       })
 
@@ -273,8 +277,8 @@ describe('log()', () => {
           log(fake.message, null, notes)
 
           expect(fetch).to.have.been.calledOnce
-          const { metadata } = getFetchBody(fetch)
-          expect(metadata.data).not.to.exist
+          const { lines } = getFetchBody(fetch)
+          expect(lines).not.to.have.property('meta')
         })
       })
     })
@@ -328,12 +332,12 @@ describe('log.error()', () => {
       log.error(message)
 
       expect(fetch).to.have.been.calledOnce
-      const { metadata, log_entry } = getFetchBody(fetch)
+      const { lines } = getFetchBody(fetch)
 
-      expect(log_entry).to.eq(`[${ name }] ${ message }`)
-      expect(metadata.level).to.eq('error')
-      expect(metadata.application).to.eq('test-app')
-      expect(metadata.mode).to.eq('testing')
+      expect(lines[0].line).to.eq(`[${ name }] ${ message }`)
+      expect(lines[0].level).to.eq('error')
+      expect(lines[0].app).to.eq('test-app')
+      expect(lines[0].env).to.eq('testing')
     })
 
     context('without data', () => {
@@ -353,8 +357,8 @@ describe('log.error()', () => {
         log.error(fake.message)
 
         expect(fetch).to.have.been.calledOnce
-        const { metadata } = getFetchBody(fetch)
-        expect(metadata.data).not.to.exist
+        const { lines } = getFetchBody(fetch)
+        expect(lines[0]).not.to.have.property('meta')
       })
     })
 
@@ -378,8 +382,8 @@ describe('log.error()', () => {
         const log = createLogger(fake.name)
         log.error(fake.message, data)
 
-        const { metadata } = getFetchBody(fetch)
-        expect(metadata.data).to.deep.eq({ test: 'data' })
+        const { lines } = getFetchBody(fetch)
+        expect(lines[0].meta).to.deep.eq({ test: 'data' })
       })
     })
   })
@@ -416,15 +420,15 @@ describe('log.error()', () => {
       log.error(error)
 
       expect(fetch).to.have.been.calledOnce
-      const { log_entry, metadata } = getFetchBody(fetch)
+      const { lines } = getFetchBody(fetch)
 
-      expect(log_entry).to.eq('[test] Error message.')
-      expect(metadata.level).to.eq('error')
-      expect(metadata.application).to.eq('test-app')
-      expect(metadata.mode).to.eq('testing')
+      expect(lines[0].line).to.eq('[test] Error message.')
+      expect(lines[0].level).to.eq('error')
+      expect(lines[0].app).to.eq('test-app')
+      expect(lines[0].env).to.eq('testing')
 
-      expect(metadata.data.stack).to.eq(error.stack)
-      expect(metadata.data.error).to.be.an('object')
+      expect(lines[0].meta.stack).to.eq(error.stack)
+      expect(lines[0].meta.error).to.be.an('object')
     })
   })
 })
@@ -477,10 +481,10 @@ describe('log.request()', () => {
       log.request(request)
 
       expect(fetch).to.have.been.calledOnce
-      const { log_entry, metadata } = getFetchBody(fetch)
+      const { lines } = getFetchBody(fetch)
 
-      expect(log_entry).to.eq(`[test] POST /post`)
-      expect(metadata.level).to.eq('info')
+      expect(lines[0].line).to.eq(`[test] POST /post`)
+      expect(lines[0].level).to.eq('info')
     })
 
     context('without a request body', () => {
@@ -505,8 +509,8 @@ describe('log.request()', () => {
         log.request(request)
 
         expect(fetch).to.have.been.calledOnce
-        const { metadata } = getFetchBody(fetch)
-        expect(metadata).not.to.have.property('data')
+        const { lines } = getFetchBody(fetch)
+        expect(lines[0]).not.to.have.property('meta')
       })
     })
 
@@ -532,8 +536,8 @@ describe('log.request()', () => {
         log.request(request)
 
         expect(fetch).to.have.been.calledOnce
-        const { metadata } = getFetchBody(fetch)
-        expect(metadata.data).to.eq('body')
+        const { lines } = getFetchBody(fetch)
+        expect(lines[0].meta).to.eq('body')
       })
     })
   })
