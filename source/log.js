@@ -35,7 +35,9 @@ module.exports = (options = {}) => {
     }
 
     function logRemotely(message, { data, level }) {
-      return fetch(`https://api.logflare.app/logs?api_key=${ key }&source=${ source }`, {
+      const now = new Date().getTime()
+
+      return fetch(`https://logs.logdna.com/logs/ingest?hostname=${ source }&apikey=${ key }&now=${ now }`, {
         method: 'POST',
 
         headers: {
@@ -43,14 +45,13 @@ module.exports = (options = {}) => {
         },
 
         body: JSON.stringify({
-          log_entry: message,
-
-          metadata: {
-            application,
-            data,
+          lines: [ {
+            line: message,
             level,
-            mode
-          }
+            app: application,
+            env: mode,
+            meta: data
+          } ]
         })
       })
     }
